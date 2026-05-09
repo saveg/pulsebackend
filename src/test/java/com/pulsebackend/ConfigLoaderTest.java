@@ -25,7 +25,7 @@ public class ConfigLoaderTest {
     @Test
     public void baseConfigShouldRemainWhenLocalDoesNotOverrideValue() {
         assertEquals(ConfigLoader.getValue("service.name"), "pulse-backend");
-        assertEquals(ConfigLoader.getList("db.list"), List.of("transactions", "events"));
+        assertEquals(ConfigLoader.getList("db.list"), List.of("events"));
         assertEquals(ConfigLoader.getValue("kafka.topics.example.results"), "pulse.example.results");
     }
 
@@ -41,5 +41,13 @@ public class ConfigLoaderTest {
         assertEquals(ConfigLoader.getValue("kafka.bootstrap.servers"), "localhost:29092");
         assertEquals(ConfigLoader.getValue("kafka.topics.example.events"), "pulse.example.events.local");
         assertEquals(ConfigLoader.getInt("kafka.consumer.poll.ms", null), 500);
+    }
+
+    @Test
+    public void databaseLocalConfigShouldOverrideBaseConfig() {
+        assertEquals(ConfigLoader.getValue("db.events.dialect"), "H2");
+        assertEquals(ConfigLoader.getValue("db.events.username"), "sa");
+        assertEquals(ConfigLoader.getInt("db.events.pool.maxSize", null), 2);
+        assertEquals(ConfigLoader.getValue("db.events.url"), "jdbc:h2:mem:pulse_events;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1");
     }
 }

@@ -6,8 +6,15 @@ feature:
   enabled: false
 db:
   list:
-    - transactions
     - events
+  events:
+    url: "jdbc:postgresql://localhost:5432/pulse_events"
+    dialect: "POSTGRES"
+    username: ""
+    password: ""
+    pool:
+      maxSize: 10
+      minIdle: 0
 kafka:
   bootstrap:
     servers: "localhost:9092"

@@ -3,6 +3,16 @@ service:
   timeout: 30
 feature:
   enabled: true
+db:
+  events:
+    url: "jdbc:h2:mem:pulse_events;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
+    dialect: "H2"
+    username: "sa"
+    password: ""
+    driverClassName: "org.h2.Driver"
+    pool:
+      maxSize: 2
+      minIdle: 0
 kafka:
   bootstrap:
     servers: "localhost:29092"
