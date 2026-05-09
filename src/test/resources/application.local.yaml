@@ -1,0 +1,11 @@
+service:
+  url: "http://localhost:8080"
+  timeout: 30
+feature:
+  enabled: true
+kafka:
+  bootstrap:
+    servers: "localhost:29092"
+  topics:
+    example:
+      events: "pulse.example.events.local"

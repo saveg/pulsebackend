@@ -4,6 +4,7 @@
     <test name="Smoke Tests">
         <packages>
             <package name="com.pulsebackend"/>
+            <package name="com.pulsebackend.*"/>
         </packages>
     </test>
 </suite>
