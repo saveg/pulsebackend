@@ -13,6 +13,11 @@ db:
     pool:
       maxSize: 2
       minIdle: 0
+mongo:
+  uri: "mongodb://localhost:27017/pulse_backend_local"
+  collections:
+    rewardPrograms: "reward_programs_local"
+    ruleParameters: "rule_parameters_local"
 kafka:
   bootstrap:
     servers: "localhost:29092"
