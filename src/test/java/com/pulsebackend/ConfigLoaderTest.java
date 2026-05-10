@@ -50,4 +50,11 @@ public class ConfigLoaderTest {
         assertEquals(ConfigLoader.getInt("db.events.pool.maxSize", null), 2);
         assertEquals(ConfigLoader.getValue("db.events.url"), "jdbc:h2:mem:pulse_events;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1");
     }
+
+    @Test
+    public void mongoLocalConfigShouldOverrideBaseConfig() {
+        assertEquals(ConfigLoader.getValue("mongo.uri"), "mongodb://localhost:27017/pulse_backend_local");
+        assertEquals(ConfigLoader.getValue("mongo.collections.rewardPrograms"), "reward_programs_local");
+        assertEquals(ConfigLoader.getValue("mongo.collections.ruleParameters"), "rule_parameters_local");
+    }
 }
