@@ -1,29 +1,22 @@
 package com.pulsebackend.clients.kafka;
 
+import com.pulsebackend.clients.api.pojo.SandboxResult;
 import com.pulsebackend.config.ConfigLoader;
 import com.pulsebackend.controllers.KafkaController;
 
 public final class KafkaClient {
     private static final KafkaClient INSTANCE = new KafkaClient();
 
-    public final KafkaController<ExampleKafkaMessage> exampleEvents;
-    public final KafkaController<ExampleKafkaMessage> exampleResults;
+    public final KafkaController<SandboxResult> exampleEvents;
 
     private KafkaClient() {
         exampleEvents = new KafkaController<>(
-                ConfigLoader.getValue("kafka.topics.example.events", "pulse.example.events"),
-                ExampleKafkaMessage.class
-        );
-        exampleResults = new KafkaController<>(
-                ConfigLoader.getValue("kafka.topics.example.results", "pulse.example.results"),
-                ExampleKafkaMessage.class
+                ConfigLoader.getValue("kafka.topics.result"),
+                SandboxResult.class
         );
     }
 
     public static KafkaClient getInstance() {
         return INSTANCE;
-    }
-
-    public record ExampleKafkaMessage(String id, String type, String payload) {
     }
 }

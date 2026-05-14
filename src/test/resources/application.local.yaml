@@ -1,26 +1,25 @@
 service:
-  url: "http://localhost:8080"
+  url: "http://localhost:4010"
   timeout: 30
 feature:
   enabled: true
 db:
   events:
-    url: "jdbc:h2:mem:pulse_events;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
-    dialect: "H2"
-    username: "sa"
-    password: ""
-    driverClassName: "org.h2.Driver"
+    url: "jdbc:postgresql://localhost:5432/sandbox_service"
+    dialect: "PostgreSQL"
+    username: "postgres"
+    password: "postgres"
+    driverClassName: "org.postgresql.Driver"
     pool:
       maxSize: 2
       minIdle: 0
 mongo:
-  uri: "mongodb://localhost:27017/pulse_backend_local"
+  uri: "mongodb://localhost:27017"
+  database: "sandbox"
   collections:
-    rewardPrograms: "reward_programs_local"
-    ruleParameters: "rule_parameters_local"
+    sandboxOrders: "sandboxOrders"
 kafka:
   bootstrap:
-    servers: "localhost:29092"
+    servers: "127.0.0.1:9092"
   topics:
-    example:
-      events: "pulse.example.events.local"
+      result: "sandbox.orders.created"

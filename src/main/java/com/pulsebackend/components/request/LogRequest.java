@@ -336,7 +336,7 @@ public class LogRequest {
         Map<String, Object> responseLog = new LinkedHashMap<>();
         responseLog.put("statusCode", response.getStatusCode());
         responseLog.put("headers", response.getHeaders());
-        responseLog.put("body", response.getRawBody());
+        responseLog.put("body", prettifyBody(response.getRawBody()));
         Allure.addAttachment("Response", "application/json", toJson(responseLog), ".json");
     }
 
@@ -482,6 +482,28 @@ public class LogRequest {
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
         } catch (Exception exception) {
             return String.valueOf(value);
+        }
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(SerializationFeature.INDENT_OUTPUT);
+
+    private Object prettifyBody(Object body) {
+        if (body == null) {
+            return null;
+        }
+        try {
+            if (body instanceof String bodyString) {
+                String trimmed = bodyString.trim();
+                if ((trimmed.startsWith("{") && trimmed.endsWith("}"))
+                        || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+                    return mapper.readTree(trimmed);
+                }
+                return bodyString;
+            }
+            return body;
+        } catch (Exception exception) {
+            return String.valueOf(body);
         }
     }
 }

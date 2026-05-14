@@ -22,14 +22,12 @@ mongo:
     ruleParameters: "rule_parameters"
 kafka:
   bootstrap:
-    servers: "localhost:9092"
+    servers: "127.0.0.1:9092"
   consumer:
     auto:
       offset:
-        reset: "latest"
+        reset: "earliest"
     poll:
       ms: 500
   topics:
-    example:
-      events: "pulse.example.events"
-      results: "pulse.example.results"
+      result: "sandbox.orders.created"
