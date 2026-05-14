@@ -7,6 +7,7 @@ import com.pulsebackend.config.ConfigLoader;
 import com.pulsebackend.kafka.KafkaOperations;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -16,9 +17,11 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Collection;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +29,10 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public final class KafkaManager implements KafkaOperations {
@@ -79,9 +85,9 @@ public final class KafkaManager implements KafkaOperations {
                 if (exception != null) {
                     LOGGER.error("Kafka send failed for topic {}", topic, exception);
                 }
-            });
+            }).get();
         } catch (Exception exception) {
-            throw new IllegalStateException("Kafka message serialization failed", exception);
+            throw new IllegalStateException("Kafka message send failed", exception);
         }
     }
 
@@ -107,16 +113,49 @@ public final class KafkaManager implements KafkaOperations {
     }
 
     private <T> ListenerRegistration createListener(String topic, String groupId, Class<T> type, Consumer<T> sink) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProperties(groupId));
         AtomicBoolean running = new AtomicBoolean(true);
-        consumer.subscribe(Collections.singletonList(topic));
+        AtomicReference<KafkaConsumer<String, String>> consumerRef = new AtomicReference<>();
+        CountDownLatch assigned = new CountDownLatch(1);
 
-        Thread thread = new Thread(() -> poll(topic, type, sink, consumer, running),
+        Thread thread = new Thread(() -> {
+            KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProperties(groupId));
+            consumerRef.set(consumer);
+            consumer.subscribe(Collections.singletonList(topic), new ConsumerRebalanceListener() {
+                @Override
+                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                    // No-op. Offsets are committed after records are processed.
+                }
+
+                @Override
+                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                    assigned.countDown();
+                }
+            });
+            poll(topic, type, sink, consumer, running);
+        },
                 "kafka-listener-" + topic + "-" + groupId);
         thread.setDaemon(true);
         thread.start();
 
-        return new ListenerRegistration(consumer, thread, running);
+        awaitAssignment(topic, groupId, assigned);
+
+        return new ListenerRegistration(consumerRef, thread, running);
+    }
+
+    private void awaitAssignment(String topic, String groupId, CountDownLatch assigned) {
+        try {
+            if (!assigned.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException(
+                        "Kafka listener was not assigned to topic " + topic + " for group " + groupId
+                );
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Interrupted while waiting for Kafka listener assignment for topic " + topic,
+                    exception
+            );
+        }
     }
 
     private <T> void poll(
@@ -269,12 +308,16 @@ public final class KafkaManager implements KafkaOperations {
     }
 
     private static final class ListenerRegistration implements AutoCloseable {
-        private final KafkaConsumer<String, String> consumer;
+        private final AtomicReference<KafkaConsumer<String, String>> consumerRef;
         private final Thread thread;
         private final AtomicBoolean running;
 
-        private ListenerRegistration(KafkaConsumer<String, String> consumer, Thread thread, AtomicBoolean running) {
-            this.consumer = consumer;
+        private ListenerRegistration(
+                AtomicReference<KafkaConsumer<String, String>> consumerRef,
+                Thread thread,
+                AtomicBoolean running
+        ) {
+            this.consumerRef = consumerRef;
             this.thread = thread;
             this.running = running;
         }
@@ -283,7 +326,10 @@ public final class KafkaManager implements KafkaOperations {
         public void close() {
             if (running.compareAndSet(true, false)) {
                 try {
-                    consumer.wakeup();
+                    KafkaConsumer<String, String> consumer = consumerRef.get();
+                    if (consumer != null) {
+                        consumer.wakeup();
+                    }
                 } catch (Exception exception) {
                     LOGGER.debug("Kafka consumer wakeup failed.", exception);
                 }
