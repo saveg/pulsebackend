@@ -6,13 +6,23 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoClients;
 import com.pulsebackend.config.ConfigLoader;
+import org.bson.BsonReader;
+import org.bson.BsonType;
+import org.bson.BsonWriter;
 import org.bson.Document;
+import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.EncoderContext;
+import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.Conventions;
 import org.bson.codecs.pojo.PojoCodecProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.time.Instant;
+
+import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -76,11 +86,40 @@ public final class MongoManager implements AutoCloseable {
 
     private static CodecRegistry pojoCodecRegistry() {
         return fromRegistries(
+                fromCodecs(new InstantStringOrDateTimeCodec()),
                 MongoClientSettings.getDefaultCodecRegistry(),
                 fromProviders(PojoCodecProvider.builder()
                         .conventions(Conventions.DEFAULT_CONVENTIONS)
                         .automatic(true)
                         .build())
         );
+    }
+
+    private static final class InstantStringOrDateTimeCodec implements Codec<Instant> {
+        @Override
+        public Instant decode(BsonReader reader, DecoderContext decoderContext) {
+            BsonType type = reader.getCurrentBsonType();
+            if (type == BsonType.STRING) {
+                return Instant.parse(reader.readString());
+            }
+            if (type == BsonType.DATE_TIME) {
+                return Instant.ofEpochMilli(reader.readDateTime());
+            }
+            if (type == BsonType.NULL) {
+                reader.readNull();
+                return null;
+            }
+            throw new CodecConfigurationException("Could not decode into Instant, expected STRING or DATE_TIME but got " + type);
+        }
+
+        @Override
+        public void encode(BsonWriter writer, Instant value, EncoderContext encoderContext) {
+            writer.writeDateTime(value.toEpochMilli());
+        }
+
+        @Override
+        public Class<Instant> getEncoderClass() {
+            return Instant.class;
+        }
     }
 }
