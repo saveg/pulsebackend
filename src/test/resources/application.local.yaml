@@ -14,8 +14,7 @@ db:
       maxSize: 2
       minIdle: 0
 mongo:
-  uri: "mongodb://localhost:27017"
-  database: "sandbox"
+  uri: "mongodb://localhost:27017/sandbox-service"
   collections:
     sandboxOrders: "sandboxOrders"
 kafka:

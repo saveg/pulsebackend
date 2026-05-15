@@ -1,16 +1,16 @@
 package com.pulsebackend.clients.mongo;
 
-import com.pulsebackend.clients.api.pojo.SandboxResult;
+import com.pulsebackend.clients.mongo.pojo.MongoResult;
 import com.pulsebackend.config.ConfigLoader;
 import com.pulsebackend.controllers.MongoController;
 
 public class MongoClient {
-    public final MongoController<SandboxResult> sandboxOrders;
+    public final MongoController<MongoResult> sandboxOrders;
 
     public MongoClient() {
         sandboxOrders = new MongoController<>(
                 ConfigLoader.getValue("mongo.collections.sandboxOrders"),
-                SandboxResult.class
+                MongoResult.class
         );
     }
 }

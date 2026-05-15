@@ -10,4 +10,16 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 public class SandboxResult extends SandboxRequestBody {
     private String id;
+
+    public static SandboxResult byId(String id) {
+        return SandboxResult.builder()
+                .id(id)
+                .customerId(null)
+                .symbol(null)
+                .side(null)
+                .quantity(null)
+                .price(null)
+                .requestedAt(null)
+                .build();
+    }
 }

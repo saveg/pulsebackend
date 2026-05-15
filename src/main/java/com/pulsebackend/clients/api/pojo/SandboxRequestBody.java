@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -32,5 +34,6 @@ public class SandboxRequestBody {
     @JsonProperty("price")
     private Double price = 100.0;
 
-    private String requestedAt = "2026-05-12T00:00:00Z";
+    @Builder.Default
+    private Instant requestedAt = new java.util.Date().toInstant();
 }

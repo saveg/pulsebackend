@@ -70,7 +70,7 @@ public final class DatabaseManager {
     private DSLContext createContext(String key) {
         DataSource dataSource = dataSources.computeIfAbsent(key, this::createDataSource);
         String dialectValue = configValue("db." + key + ".dialect", "POSTGRES");
-        SQLDialect dialect = SQLDialect.valueOf(dialectValue.trim().toUpperCase());
+        SQLDialect dialect = resolveDialect(dialectValue);
 
         DefaultConfiguration configuration = new DefaultConfiguration();
         configuration.set(dataSource);
@@ -78,6 +78,23 @@ public final class DatabaseManager {
         configuration.set(converterProvider());
 
         return DSL.using(configuration);
+    }
+
+    private static SQLDialect resolveDialect(String rawDialect) {
+        String value = rawDialect == null ? "" : rawDialect.trim().toUpperCase();
+
+        return switch (value) {
+            case "POSTGRES", "POSTGRESQL" -> SQLDialect.POSTGRES;
+            case "H2" -> SQLDialect.H2;
+            case "MYSQL" -> SQLDialect.MYSQL;
+            default -> {
+                try {
+                    yield SQLDialect.valueOf(value);
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalStateException("Unsupported db dialect: " + rawDialect, exception);
+                }
+            }
+        };
     }
 
     private DataSource createDataSource(String key) {
